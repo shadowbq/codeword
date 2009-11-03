@@ -1,0 +1,9 @@
+TARGETNAME=CwDriver
+TARGETPATH=OBJ
+TARGETTYPE=DRIVER
+#the next line is required for distorm x86 diassembler
+C_DEFINES = $(C_DEFINES) -DSUPPORT_64BIT_OFFSET
+#compiler options
+CFLAGS=/C  #suppress warnings
+SOURCES=main.c ssdt.c module.c gdt.c lut.c irp.c x86.c distorminc.c handle.c win32apicheck.c cwprocess.c
+LINKER_FLAGS= /VERBOSE -MAP   	#this produces a .map file that can be loaded into Windbg for debugging using skywing's SDbgExt extensions
