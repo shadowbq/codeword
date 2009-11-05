@@ -1,18 +1,18 @@
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CwAgent", "Projects\CwAgent\CwAgent.csproj", "{FC692D6C-E9C0-42FF-8141-34B89FD6DCE8}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CwAgent", "CwAgent\CwAgent.csproj", "{FC692D6C-E9C0-42FF-8141-34B89FD6DCE8}"
 	ProjectSection(ProjectDependencies) = postProject
 		{9F676CC4-04F6-4880-B055-1389F3351DDE} = {9F676CC4-04F6-4880-B055-1389F3351DDE}
 	EndProjectSection
 EndProject
-Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "CwInstaller", "Projects\CwInstaller\CwInstaller.vdproj", "{A1ABDE99-2449-4A87-8B13-6F4D23273CCB}"
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "CwInstaller", "CwInstaller\CwInstaller.vdproj", "{A1ABDE99-2449-4A87-8B13-6F4D23273CCB}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CwAdminConsole", "Projects\CwHandler\CwAdminConsole.csproj", "{6A1E65C2-9775-4E2F-A46F-486C8E6ACB6F}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CwAdminConsole", "CwHandler\CwAdminConsole.csproj", "{6A1E65C2-9775-4E2F-A46F-486C8E6ACB6F}"
 	ProjectSection(ProjectDependencies) = postProject
 		{A1ABDE99-2449-4A87-8B13-6F4D23273CCB} = {A1ABDE99-2449-4A87-8B13-6F4D23273CCB}
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CwDriver", "Projects\CwDriver\kgsp.vcproj", "{9F676CC4-04F6-4880-B055-1389F3351DDE}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CwDriver", "CwDriver\CwDriver.vcproj", "{9F676CC4-04F6-4880-B055-1389F3351DDE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

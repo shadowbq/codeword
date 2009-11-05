@@ -235,6 +235,7 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	ULONG Ioctl;
 	PDRIVER_CHECK_INFO dInfo=NULL;
 	int i=0;
+	BOOL ValidationFailed=FALSE;
 
 	//are we at correct IRQL for paging??
 	PAGED_CODE();
@@ -261,47 +262,49 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	// PRELIM VALIDATION
 	//--------------------
 	//determine required sizes for in/out bufs
-	if (Ioctl == IOCTL_SSDT_DETECT_HOOKS)
+	switch(Ioctl)
 	{
-		RequiredOutputBufferSize=sizeof(HOOKED_SSDT_TABLE);
-		RequiredInputBufferSize=0; //no input buf needed
-	}
-	else if (Ioctl == IOCTL_SSDT_DETECT_DETOURS)
-	{
-		RequiredOutputBufferSize=sizeof(DETOURED_SSDT_TABLE);
-		RequiredInputBufferSize=0; //no input buf needed
-	}
-	else if (Ioctl == IOCTL_WIN32API_DETOUR_DETECTION)
-	{
-		RequiredOutputBufferSize=sizeof(WIN32API_DETOUR_TABLE);
-		RequiredInputBufferSize=0; //input buf needed but not checked
-	}
-	else if (Ioctl == IOCTL_IRP_HOOK_DETECTION)
-	{
-		RequiredOutputBufferSize=sizeof(HOOKED_DISPATCH_FUNCTIONS_TABLE);
-		RequiredInputBufferSize=sizeof(DRIVER_CHECK_INFO);
-	}
-	else if (Ioctl == IOCTL_IRP_DETOUR_DETECTION)
-	{
-		RequiredOutputBufferSize=sizeof(DETOURED_DISPATCH_FUNCTIONS_TABLE);
-		RequiredInputBufferSize=sizeof(DRIVER_CHECK_INFO);
-	}
-	else if (Ioctl == IOCTL_GET_PROCESS_LISTING_ZWQ)
-	{
-		RequiredOutputBufferSize=sizeof(PROCESS_LISTING_ZWQ);
-		RequiredInputBufferSize=0; //no inbuf needed
-	}
-	else if (Ioctl == IOCTL_GET_PROCESS_LISTING_PSP)
-	{
-		RequiredOutputBufferSize=sizeof(UINT)*256;
-		RequiredInputBufferSize=0; //no inbuf needed
-	}
-	else //unrecognized IOCTL.  bail now.
-	{
-		Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
-		Irp->IoStatus.Information = 0;
-		DbgPrint("CwDispatchHandlerIoControl():  Received unrecognized IOCTL code 0x%08x",Ioctl);
-        goto End;
+		case IOCTL_SSDT_DETECT_HOOKS:
+			RequiredOutputBufferSize = sizeof(HOOKED_SSDT_TABLE);
+			RequiredInputBufferSize  = 0; //no input buf needed
+			break;
+		
+		case IOCTL_SSDT_DETECT_DETOURS:
+			RequiredOutputBufferSize = sizeof(DETOURED_SSDT_TABLE);
+			RequiredInputBufferSize  = 0; //no input buf needed
+			break;
+			
+		case IOCTL_WIN32API_DETOUR_DETECTION:
+			RequiredOutputBufferSize = sizeof(WIN32API_DETOUR_TABLE);
+			RequiredInputBufferSize  = 0; //input buf needed but not checked
+			break;
+			
+		case IOCTL_IRP_HOOK_DETECTION:
+			RequiredOutputBufferSize = sizeof(HOOKED_DISPATCH_FUNCTIONS_TABLE);
+			RequiredInputBufferSize  = sizeof(DRIVER_CHECK_INFO);
+			break;
+			
+		case IOCTL_IRP_DETOUR_DETECTION:
+			RequiredOutputBufferSize = sizeof(DETOURED_DISPATCH_FUNCTIONS_TABLE);
+			RequiredInputBufferSize  = sizeof(DRIVER_CHECK_INFO);
+			break;
+		
+		case IOCTL_GET_PROCESS_LISTING_ZWQ:
+			RequiredOutputBufferSize = sizeof(PROCESS_LISTING_ZWQ);
+			RequiredInputBufferSize  = 0; //no inbuf needed
+			break;
+			
+		case IOCTL_GET_PROCESS_LISTING_PSP:
+			RequiredOutputBufferSize = sizeof(UINT)*256;
+			RequiredInputBufferSize  = 0; //no inbuf needed
+			break;
+		
+		default: //unrecognized IOCTL.  bail now.
+			Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
+			Irp->IoStatus.Information = 0;
+			DbgPrint("CwDispatchHandlerIoControl():  Received unrecognized IOCTL code 0x%08x",Ioctl);
+			IoCompleteRequest(Irp,IO_NO_INCREMENT);
+			return STATUS_INVALID_DEVICE_REQUEST;
 	}
 
 	//check out buffer size
@@ -310,7 +313,8 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		DbgPrint("CwDispatchHandlerIoControl():  The supplied user output buffer is of incorrect size:  %i should be %i.",UserModeOutputBufferLen,RequiredOutputBufferSize);
 		Irp->IoStatus.Information = 0;
 		Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
-        goto End;
+        IoCompleteRequest(Irp,IO_NO_INCREMENT);
+		return STATUS_INVALID_PARAMETER;
 	}
 	//check in buffer size if the required size is not 0
 	if ((RequiredInputBufferSize !=  0) && (UserModeInputBufferLen != RequiredInputBufferSize))
@@ -318,7 +322,8 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		DbgPrint("CwDispatchHandlerIoControl():  The supplied user input buffer is of incorrect size:  %i should be %i.",UserModeInputBufferLen,RequiredInputBufferSize);
 		Irp->IoStatus.Information = 0;
 		Irp->IoStatus.Status = STATUS_INVALID_PARAMETER;
-        goto End;
+        IoCompleteRequest(Irp,IO_NO_INCREMENT);
+		return STATUS_INVALID_PARAMETER;
 	}
 
 	//------------------------
@@ -330,11 +335,12 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		DbgPrint("CwDispatchHandlerIoControl():  ExAllocatePoolWithTag() failed to allocate %i bytes for return buffer.",RequiredOutputBufferSize);
 		Irp->IoStatus.Information = 0;
 		Irp->IoStatus.Status = STATUS_INSUFFICIENT_RESOURCES;
-		goto End;
+		IoCompleteRequest(Irp,IO_NO_INCREMENT);
+		return STATUS_INSUFFICIENT_RESOURCES;
 	}
+
 	//dont leak kernel mode info that may be in this buffer
 	RtlZeroMemory(pReturnBuffer,RequiredOutputBufferSize);
-
 
 	//
 	//////////////////////////////////////////////////////////////////////////////
@@ -625,18 +631,10 @@ NTSTATUS CwDispatchHandlerIoControl(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 	//___________________________
 	//
 	//
-    default:
-
-        //
-        // The specified I/O control code is unrecognized by this driver.
-        //
-		Irp->IoStatus.Status = STATUS_INVALID_DEVICE_REQUEST;
-		Irp->IoStatus.Information = 0;
-		DbgPrint("CwDispatchHandlerIoControl():  Received unrecognized IOCTL code 0x%08x",Ioctl);
-        break;
+    //default:
+	//	no need for default base case, since only known IRPs have made it this far
 	}
 
-End:
 	//free our PVOID return buffer
 	if (pReturnBuffer != NULL)
 		ExFreePoolWithTag(pReturnBuffer,CW_TAG);
