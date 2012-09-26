@@ -1,1 +1,11 @@
+# Ignore Dirs
 Backup
+
+# Windows Junks
+[tT]humbs.db
+
+#Visual Studio Files
+*.sdf
+*.opensdf
+*.suo
+
